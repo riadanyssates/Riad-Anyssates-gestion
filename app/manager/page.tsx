@@ -2109,7 +2109,7 @@ function ComptableTab() {
   const sections: { id: ComptableSection; label: string }[] = [
     { id: 'achats', label: '📥 Factures d’achat' },
     { id: 'ventes', label: '📤 Factures de vente' },
-    { id: 'taxes', label: '🏨 Taxe de séjour et TPT' },
+    { id: 'taxes', label: '🏨 TS et TPT' },
     { id: 'releves', label: '🏦 Relevés bancaires' },
   ]
   return (
