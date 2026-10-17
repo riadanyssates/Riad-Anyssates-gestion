@@ -122,7 +122,7 @@ export default function ManagerGuide({ onClose }: { onClose: () => void }) {
         </ul>
 
         <h2 style={h2}>5. Banque (🏦)</h2>
-        <p style={p}>L&apos;onglet Banque a quatre boutons en haut : <b>🏦 Mouvements</b>, <b>📄 Relevés Attijari</b>, <b>📄 Relevés CMI</b> et <b>📄 Relevés American Express</b>.</p>
+        <p style={p}>L&apos;onglet Banque a quatre boutons en haut : <b>🏦 Mouvements</b>, <b>📄 Attijari</b>, <b>📄 CMI</b> et <b>📄 AMEX</b> (les relevés de chaque banque).</p>
         <p style={p}><b>Mouvements</b> : l&apos;onglet regroupe automatiquement tout ce qui n&apos;est pas payé en espèces : CB, virements, chèques, prélèvements. Il n&apos;y a rien à y saisir : tout vient de Dépenses et Encaissements.</p>
         <ul style={list}>
           <li style={li}><b>Solde net MAD</b> : le solde du compte selon l&apos;application. Il doit être égal au solde Attijari.</li>
@@ -166,7 +166,7 @@ export default function ManagerGuide({ onClose }: { onClose: () => void }) {
         <p style={note}>Fiez-vous à la liste en ligne d&apos;Attijari : l&apos;export CSV peut sauter des lignes. Pour corriger un écart qui reste inexpliqué, ajoutez une <b>ligne de régularisation datée</b> dans Dépenses ou Encaissements. Ne modifiez pas le solde initial : cela fausserait tous les mois passés.</p>
 
         <h2 style={h2}>6. Comptable (📨)</h2>
-        <p style={p}>L&apos;onglet Comptable liste, mois par mois, toutes les saisies cochées « Facture à envoyer au comptable », en quatre rubriques : <b>Factures d&apos;achat</b> (dépenses), <b>Factures de vente</b> (encaissements), <b>Taxe de séjour et TPT</b> et <b>Relevés bancaires</b>.</p>
+        <p style={p}>L&apos;onglet Comptable liste, mois par mois, toutes les saisies cochées « Facture à envoyer au comptable », en quatre rubriques : <b>Factures d&apos;achat</b> (dépenses), <b>Factures de vente</b> (encaissements), <b>TS et TPT</b> (taxe de séjour et taxe de promotion touristique) et <b>Relevés bancaires</b>.</p>
         <ul style={list}>
           <li style={li}>Choisissez le mois avec les flèches, ou cochez « Tous les mois ».</li>
           <li style={li}>Le nombre de <b>justificatifs manquants</b> s&apos;affiche en rouge. Sur chaque ligne sans facture, <b>+ Ajouter</b> permet de joindre la photo ou le PDF directement. La flèche ↻ remplace une facture déjà jointe.</li>
@@ -204,7 +204,7 @@ export default function ManagerGuide({ onClose }: { onClose: () => void }) {
           ['Chaque mois', 'Déposer les relevés Attijari, CMI et Amex, lire le contrôle Attijari et corriger les écarts', 'Banque › Relevés'],
           ['Chaque mois', 'Exporter les relevés bancaires du mois et les envoyer au comptable', 'Comptable › Relevés bancaires'],
           ['Chaque semaine', 'Compléter les factures des encaissements saisis par les employés', 'Comptable › Factures de vente'],
-          ['Chaque trimestre', 'Exporter le relevé de la taxe de séjour et TPT et l’envoyer au comptable', 'Comptable › Taxe de séjour et TPT'],
+          ['Chaque trimestre', 'Exporter le relevé de la taxe de séjour et TPT et l’envoyer au comptable', 'Comptable › TS et TPT'],
         ]} />
         <p style={p}>En cas de doute sur un chiffre ou d&apos;anomalie dans l&apos;application, notez la date et le montant concernés et prévenez Sarah.</p>
 

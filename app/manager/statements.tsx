@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { openAttachment, dataUrlToBlob } from '@/lib/attachments'
 
 export type StatementSource = 'attijari' | 'cmi' | 'amex'
-export const STATEMENT_LABELS: Record<StatementSource, string> = { attijari: 'Attijari', cmi: 'CMI', amex: 'American Express' }
+export const STATEMENT_LABELS: Record<StatementSource, string> = { attijari: 'Attijari', cmi: 'CMI', amex: 'AMEX' }
 
 interface Statement {
   id: number; source: string; period: string; filename: string

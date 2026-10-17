@@ -1413,13 +1413,14 @@ function BanqueTab() {
   const [section, setSection] = useState<'mouvements' | StatementSource>('mouvements')
   const sections: { id: 'mouvements' | StatementSource; label: string }[] = [
     { id: 'mouvements', label: '🏦 Mouvements' },
-    ...(['attijari', 'cmi', 'amex'] as const).map(id => ({ id, label: `📄 Relevés ${STATEMENT_LABELS[id]}` })),
+    ...(['attijari', 'cmi', 'amex'] as const).map(id => ({ id, label: `📄 ${STATEMENT_LABELS[id]}` })),
   ]
   return (
     <div>
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+      {/* Mouvements puis relevés de chaque banque, sur une ligne */}
+      <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
         {sections.map(s => (
-          <button key={s.id} onClick={() => setSection(s.id)} style={{ padding: '0.45rem 0.9rem', borderRadius: '999px', border: `1px solid ${section === s.id ? '#3730A3' : '#ddd'}`, background: section === s.id ? '#3730A3' : 'white', color: section === s.id ? 'white' : 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>{s.label}</button>
+          <button key={s.id} onClick={() => setSection(s.id)} style={{ padding: '0.4rem 0.55rem', whiteSpace: 'nowrap', borderRadius: '999px', border: `1px solid ${section === s.id ? '#3730A3' : '#ddd'}`, background: section === s.id ? '#3730A3' : 'white', color: section === s.id ? 'white' : 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem' }}>{s.label}</button>
         ))}
       </div>
       {section === 'mouvements' ? <BanqueMouvements /> : <StatementsPanel key={section} source={section} />}
@@ -1526,8 +1527,7 @@ function BanqueMouvements() {
  
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#3730A3' }}>🏦 Banque</h2>
+      <div style={{ marginBottom: '1rem' }}>
         <DateRangeFilter value={bankRange} onChange={setBankRange} color="#3730A3" />
       </div>
       {rangeActive(bankRange) && (
@@ -2109,7 +2109,7 @@ function ComptableTab() {
   const sections: { id: ComptableSection; label: string }[] = [
     { id: 'achats', label: '📥 Factures d’achat' },
     { id: 'ventes', label: '📤 Factures de vente' },
-    { id: 'taxes', label: '🏨 Taxe de séjour et TPT' },
+    { id: 'taxes', label: '🏨 TS et TPT' },
     { id: 'releves', label: '🏦 Relevés bancaires' },
   ]
   return (
