@@ -72,11 +72,11 @@ export default function ManagerPage() {
       <header className="mgr-header" style={{ background: 'var(--terracotta)', color: 'white', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
         <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>🏨 Riad Anyssates</div>
         <div className="mgr-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button onClick={() => window.location.href = '/api/export/excel'} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>📊 Excel</button>
-          <button onClick={() => setShowGuide(true)} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>📖 Mode d&apos;emploi</button>
+          <button onClick={() => window.location.href = '/api/export/excel'} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }} title="Export Excel">📊<span className="hdr-long"> Excel</span></button>
+          <button onClick={() => setShowGuide(true)} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }} title="Mode d'emploi">📖<span className="hdr-long"> Mode d&apos;emploi</span></button>
           <NotificationBell />
-          <span style={{ fontSize: '0.8rem', opacity: 0.85 }}>{managerName}</span>
-          <button onClick={logout} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem' }}>Déconnexion</button>
+          <span className="hdr-name" title={managerName} style={{ fontSize: '0.8rem', opacity: 0.85 }}><span className="hdr-long">{managerName}</span><span className="hdr-short">{managerName.charAt(0)}</span></span>
+          <button onClick={logout} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem' }} title="Déconnexion"><span className="hdr-long">Déconnexion</span><span className="hdr-short">⏻</span></button>
         </div>
       </header>
       {showGuide && <ManagerGuide onClose={() => setShowGuide(false)} />}
@@ -2114,9 +2114,10 @@ function ComptableTab() {
   ]
   return (
     <div>
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+      {/* Quatre rubriques sur deux lignes (deux par ligne) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.5rem', marginBottom: '1rem', maxWidth: 560 }}>
         {sections.map(s => (
-          <button key={s.id} onClick={() => setSection(s.id)} style={{ padding: '0.45rem 0.9rem', borderRadius: '999px', border: `1px solid ${section === s.id ? '#0F766E' : '#ddd'}`, background: section === s.id ? '#0F766E' : 'white', color: section === s.id ? 'white' : 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>{s.label}</button>
+          <button key={s.id} onClick={() => setSection(s.id)} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.75rem', textAlign: 'center', lineHeight: 1.25, border: `1px solid ${section === s.id ? '#0F766E' : '#ddd'}`, background: section === s.id ? '#0F766E' : 'white', color: section === s.id ? 'white' : 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>{s.label}</button>
         ))}
       </div>
       {section === 'achats' && <ComptableInvoices type="cb" />}
