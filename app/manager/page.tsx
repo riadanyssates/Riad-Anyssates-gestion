@@ -2114,9 +2114,10 @@ function ComptableTab() {
   ]
   return (
     <div>
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+      {/* Quatre rubriques sur deux lignes (deux par ligne) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.5rem', marginBottom: '1rem', maxWidth: 560 }}>
         {sections.map(s => (
-          <button key={s.id} onClick={() => setSection(s.id)} style={{ padding: '0.45rem 0.9rem', borderRadius: '999px', border: `1px solid ${section === s.id ? '#0F766E' : '#ddd'}`, background: section === s.id ? '#0F766E' : 'white', color: section === s.id ? 'white' : 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>{s.label}</button>
+          <button key={s.id} onClick={() => setSection(s.id)} style={{ padding: '0.45rem 0.6rem', borderRadius: '0.75rem', textAlign: 'center', lineHeight: 1.25, border: `1px solid ${section === s.id ? '#0F766E' : '#ddd'}`, background: section === s.id ? '#0F766E' : 'white', color: section === s.id ? 'white' : 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>{s.label}</button>
         ))}
       </div>
       {section === 'achats' && <ComptableInvoices type="cb" />}
