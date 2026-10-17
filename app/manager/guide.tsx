@@ -122,7 +122,7 @@ export default function ManagerGuide({ onClose }: { onClose: () => void }) {
         </ul>
 
         <h2 style={h2}>5. Banque (🏦)</h2>
-        <p style={p}>L&apos;onglet Banque a quatre boutons en haut : <b>🏦 Mouvements</b>, <b>📄 Relevés Attijari</b>, <b>📄 Relevés CMI</b> et <b>📄 Relevés American Express</b>.</p>
+        <p style={p}>L&apos;onglet Banque a quatre boutons en haut : <b>🏦 Mouvements</b>, <b>📄 Attijari</b>, <b>📄 CMI</b> et <b>📄 AMEX</b> (les relevés de chaque banque).</p>
         <p style={p}><b>Mouvements</b> : l&apos;onglet regroupe automatiquement tout ce qui n&apos;est pas payé en espèces : CB, virements, chèques, prélèvements. Il n&apos;y a rien à y saisir : tout vient de Dépenses et Encaissements.</p>
         <ul style={list}>
           <li style={li}><b>Solde net MAD</b> : le solde du compte selon l&apos;application. Il doit être égal au solde Attijari.</li>
