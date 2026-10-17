@@ -205,6 +205,9 @@ table tr:hover td {
 .table-scroll thead th { position: sticky; top: 0; z-index: 2; box-shadow: inset 0 -1px 0 #E8D9CB; }
 .table-dep td.col-wrap { min-width: 7rem; max-width: 15rem; white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
 
+/* Raccourcis du bandeau, affichés seulement sur téléphone */
+.hdr-short { display: none; }
+
 /* ─── Téléphone (portrait) ─────────────────────────────────────────────
    Rien ne doit dépasser de l'écran : les tableaux se font défiler
    horizontalement dans leur cadre, le reste s'empile. */
@@ -216,9 +219,13 @@ img { max-width: 100%; }
   .mgr-main { padding: 1rem 0.75rem !important; }
   .mgr-header { height: auto !important; min-height: 52px; padding: 0.4rem 0.75rem !important; flex-wrap: wrap; gap: 0.4rem; }
   .mgr-header > div:first-child { font-size: 1rem !important; }
-  /* Boutons du haut (Excel, Mode d'emploi, nom, Déconnexion) : passent à la ligne au lieu de sortir de l'écran */
-  .mgr-actions { flex-wrap: wrap; width: 100%; gap: 0.35rem !important; }
-  .mgr-actions button { padding: 0.3rem 0.55rem !important; }
+  /* Bandeau du haut sur une seule ligne : Excel, Mode d'emploi, nom et Déconnexion en raccourcis */
+  .mgr-header { flex-wrap: nowrap; }
+  .mgr-actions { gap: 0.3rem !important; }
+  .mgr-actions button { padding: 0.3rem 0.5rem !important; }
+  .hdr-long { display: none; }
+  .hdr-short { display: inline !important; }
+  .hdr-name .hdr-short { display: inline-flex !important; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: rgba(255,255,255,0.25); font-weight: 700; opacity: 1; }
   .emp-header { height: auto !important; min-height: 52px; padding: 0.4rem 0.75rem !important; flex-wrap: wrap; gap: 0.4rem; }
   .card, .stat-card { padding: 0.9rem; }
   .stat-card div[style*="1.75rem"] { font-size: 1.35rem !important; }

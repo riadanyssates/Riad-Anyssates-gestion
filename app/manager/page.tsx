@@ -72,11 +72,11 @@ export default function ManagerPage() {
       <header className="mgr-header" style={{ background: 'var(--terracotta)', color: 'white', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
         <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>🏨 Riad Anyssates</div>
         <div className="mgr-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button onClick={() => window.location.href = '/api/export/excel'} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>📊 Excel</button>
-          <button onClick={() => setShowGuide(true)} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>📖 Mode d&apos;emploi</button>
+          <button onClick={() => window.location.href = '/api/export/excel'} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }} title="Export Excel">📊<span className="hdr-long"> Excel</span></button>
+          <button onClick={() => setShowGuide(true)} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }} title="Mode d'emploi">📖<span className="hdr-long"> Mode d&apos;emploi</span></button>
           <NotificationBell />
-          <span style={{ fontSize: '0.8rem', opacity: 0.85 }}>{managerName}</span>
-          <button onClick={logout} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem' }}>Déconnexion</button>
+          <span className="hdr-name" title={managerName} style={{ fontSize: '0.8rem', opacity: 0.85 }}><span className="hdr-long">{managerName}</span><span className="hdr-short">{managerName.charAt(0)}</span></span>
+          <button onClick={logout} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem' }} title="Déconnexion"><span className="hdr-long">Déconnexion</span><span className="hdr-short">⏻</span></button>
         </div>
       </header>
       {showGuide && <ManagerGuide onClose={() => setShowGuide(false)} />}
