@@ -84,11 +84,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Champs manquants' }, { status: 400 })
     }
  
+    // Saisie d'un administrateur (session manager) : déjà validée, rien à valider ensuite.
+    // Saisie d'un employé (token) : reste « En attente » jusqu'à validation.
     // Encaissement saisi par un employé : il part dans Comptable › Factures de vente,
     // où Valérie ou Nicolas complètent la facture client
     const result = await sql`
-      INSERT INTO entries (employee_name, type, date, amount, category, supplier, payment, description, currency, invoice_url, amount_ht, tva_rate, reference, cash_location, to_accountant)
-      VALUES (${empName}, ${type}, ${date}, ${amount}, ${category}, ${supplier || null}, ${payment || null}, ${description || null}, ${currency || 'MAD'}, ${invoice_url || null}, ${amount_ht || null}, ${tva_rate || null}, ${reference || null}, ${payment === 'Espèces' ? (cash_location === 'coffre' ? 'coffre' : 'fonds') : null}, ${to_accountant || (token && type === 'cash') ? 1 : 0})
+      INSERT INTO entries (employee_name, type, date, amount, category, supplier, payment, description, currency, invoice_url, amount_ht, tva_rate, reference, cash_location, to_accountant, status, validated_at)
+      VALUES (${empName}, ${type}, ${date}, ${amount}, ${category}, ${supplier || null}, ${payment || null}, ${description || null}, ${currency || 'MAD'}, ${invoice_url || null}, ${amount_ht || null}, ${tva_rate || null}, ${reference || null}, ${payment === 'Espèces' ? (cash_location === 'coffre' ? 'coffre' : 'fonds') : null}, ${to_accountant || (token && type === 'cash') ? 1 : 0}, ${token ? 'pending' : 'validated'}, ${token ? null : new Date().toISOString().replace('T', ' ').slice(0, 19)})
       RETURNING *
     `
  

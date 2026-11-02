@@ -357,8 +357,9 @@ function EntriesTab({ type, label, color }: { type: 'cb' | 'cash'; label: string
   const [range, setRange] = useState<DateRange>(EMPTY_RANGE)
   const useRange = rangeActive(range)
 
-  const fetchEntries = useCallback(async () => {
-    setLoading(true)
+  // silent : on garde le tableau affiché pendant la mise à jour (pas d'écran « Chargement… »)
+  const fetchEntries = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     const params = new URLSearchParams({ type })
     if (!useRange) params.set('month', month)
     if (filterStatus) params.set('status', filterStatus)
@@ -397,7 +398,7 @@ function EntriesTab({ type, label, color }: { type: 'cb' | 'cash'; label: string
   async function changePayment(entry: Entry, value: string) {
     const [payment, loc] = value.split('|')
     const r = await fetch(`/api/entries/${entry.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payment, cash_location: loc || null }) }).catch(() => null)
-    if (r && r.ok) fetchEntries()
+    if (r && r.ok) fetchEntries(true)
     else {
       setFormError('Impossible de modifier le mode de paiement — réessayez.')
       setTimeout(() => setFormError(''), 5000)
@@ -412,7 +413,7 @@ function EntriesTab({ type, label, color }: { type: 'cb' | 'cash'; label: string
         setFormSuccess(`✓ Date modifiée — l'entrée est maintenant en ${formatMonth(newDate.substring(0, 7))}`)
         setTimeout(() => setFormSuccess(''), 5000)
       }
-      fetchEntries()
+      fetchEntries(true)
     } else {
       setFormError('Impossible de modifier la date — réessayez.')
       setTimeout(() => setFormError(''), 5000)
@@ -439,14 +440,21 @@ function EntriesTab({ type, label, color }: { type: 'cb' | 'cash'; label: string
   }
  
   async function toggleStatus(entry: Entry) {
-    await fetch(`/api/entries/${entry.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: entry.status === 'pending' ? 'validated' : 'pending' }) })
-    fetchEntries()
+    // la ligne change tout de suite ; on revient en arrière seulement si l'enregistrement échoue
+    const next = entry.status === 'pending' ? 'validated' : 'pending'
+    setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, status: next } : e))
+    const r = await fetch(`/api/entries/${entry.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: next }) }).catch(() => null)
+    if (!r || !r.ok) {
+      setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, status: entry.status } : e))
+      setFormError('Impossible de modifier le statut — réessayez.')
+      setTimeout(() => setFormError(''), 5000)
+    }
   }
  
   async function deleteEntry(id: number) {
     await fetch(`/api/entries/${id}`, { method: 'DELETE' })
     setDeleteModal(null)
-    fetchEntries()
+    fetchEntries(true)
     if (type === 'cash') reloadInvoices()
   }
  
@@ -556,7 +564,7 @@ function EntriesTab({ type, label, color }: { type: 'cb' | 'cash'; label: string
     try {
       const url = await fileToBase64(file)
       await fetch(`/api/entries/${pendingUploadEntry}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invoice_url: url }) })
-      fetchEntries()
+      fetchEntries(true)
     } catch { /* ignore */ }
     setUploadingEntryId(null)
     setPendingUploadEntry(null)
@@ -1083,7 +1091,7 @@ function EntriesTab({ type, label, color }: { type: 'cb' | 'cash'; label: string
           onSaved={() => {
             setInvoiceFor(null); setFLastEntry(null); reloadInvoices()
             // La création de facture coche « à envoyer au comptable » côté serveur
-            fetchEntries()
+            fetchEntries(true)
           }} />
       )}
  
@@ -1684,8 +1692,8 @@ function CoffreTab() {
   // On charge tout l'historique (pas seulement le mois affiché) : le Solde DHS/€
   // de chaque ligne est un cumul depuis le début, comme dans l'Excel — il faut
   // donc connaître les mouvements des mois précédents pour le calculer juste.
-  const fetchEntries = useCallback(async () => {
-    setLoading(true)
+  const fetchEntries = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     const [r, rEnt] = await Promise.all([fetch('/api/coffre'), fetch('/api/entries')])
     const data = await r.json()
     const ents = await rEnt.json().catch(() => [])
@@ -1746,14 +1754,17 @@ function CoffreTab() {
   const totalOutEur = rowsWithSolde.filter(e => e.direction === 'out' && e.currency === 'EUR').reduce((s, e) => s + Number(e.amount), 0)
  
   async function toggleStatus(entry: CoffreEntry) {
-    await fetch(`/api/coffre/${entry.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: entry.status === 'pending' ? 'validated' : 'pending' }) })
-    fetchEntries()
+    const next = entry.status === 'pending' ? 'validated' : 'pending'
+    const same = (e: CoffreEntry) => e.id === entry.id && e.source === entry.source
+    setAllEntries(prev => prev.map(e => same(e) ? { ...e, status: next } : e))
+    const r = await fetch(`/api/coffre/${entry.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: next }) }).catch(() => null)
+    if (!r || !r.ok) setAllEntries(prev => prev.map(e => same(e) ? { ...e, status: entry.status } : e))
   }
  
   async function deleteEntry(id: number) {
     await fetch(`/api/coffre/${id}`, { method: 'DELETE' })
     setDeleteModal(null)
-    fetchEntries()
+    fetchEntries(true)
   }
  
   async function processFile(file: File) {
@@ -1843,7 +1854,7 @@ function CoffreTab() {
     try {
       const url = await fileToBase64(file)
       await fetch(`/api/coffre/${pendingUploadEntry}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invoice_url: url }) })
-      fetchEntries()
+      fetchEntries(true)
     } catch { /* ignore */ }
     setUploadingEntryId(null)
     setPendingUploadEntry(null)
@@ -1867,7 +1878,7 @@ function CoffreTab() {
     if (r.ok) {
       setAmount(''); setDescription(''); setShowForm(false)
       setFFile(null); setFFilePreview(null); setFExtracted(false)
-      fetchEntries()
+      fetchEntries(true)
     } else {
       const d = await r.json()
       setFormError(d.error || 'Erreur')
