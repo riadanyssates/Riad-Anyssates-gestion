@@ -61,8 +61,8 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await sql`
-      INSERT INTO fonds_entries (employee_name, direction, date, amount, currency, category, description)
-      VALUES (${empName}, ${direction}, ${date}, ${amount}, ${currency || 'MAD'}, ${category}, ${description || null})
+      INSERT INTO fonds_entries (employee_name, direction, date, amount, currency, category, description, status, validated_at)
+      VALUES (${empName}, ${direction}, ${date}, ${amount}, ${currency || 'MAD'}, ${category}, ${description || null}, ${token ? 'pending' : 'validated'}, ${token ? null : new Date().toISOString().replace('T', ' ').slice(0, 19)})
       RETURNING *
     `
 

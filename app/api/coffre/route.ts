@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
     }
  
     const result = await sql`
-      INSERT INTO coffre_entries (employee_name, direction, date, amount, currency, category, description, invoice_url)
-      VALUES (${employee_name}, ${direction}, ${date}, ${amount}, ${currency || 'MAD'}, ${category}, ${description || null}, ${invoice_url || null})
+      INSERT INTO coffre_entries (employee_name, direction, date, amount, currency, category, description, invoice_url, status)
+      VALUES (${employee_name}, ${direction}, ${date}, ${amount}, ${currency || 'MAD'}, ${category}, ${description || null}, ${invoice_url || null}, 'validated')
       RETURNING *
     `
     await notify({
