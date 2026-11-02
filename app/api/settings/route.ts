@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
-import { getManagerSession, createSessionToken, SESSION_COOKIE } from '@/lib/auth'
+import { getManagerSession, getManagerName, createSessionToken, SESSION_COOKIE } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +43,7 @@ export async function PATCH(req: NextRequest) {
     await sql`UPDATE settings SET value = ${newPin} WHERE key = 'pin'`
 
     // Update session cookie with new PIN
-    const token = createSessionToken(newPin)
+    const token = createSessionToken(getManagerName())
     const response = NextResponse.json({ ok: true })
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
