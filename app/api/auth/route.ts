@@ -9,7 +9,6 @@ export async function POST(req: NextRequest) {
     await ensureDb()
     const { pin, token: empToken } = await req.json()
 
-    let sessionSeed: string
     let displayName: string
 
     if (empToken) {
@@ -18,7 +17,6 @@ export async function POST(req: NextRequest) {
       if (!rows[0]) {
         return NextResponse.json({ error: 'Accès manager non autorisé' }, { status: 401 })
       }
-      sessionSeed = `emp:${empToken}`
       displayName = rows[0].name as string
     } else {
       if (!pin) {
@@ -29,11 +27,10 @@ export async function POST(req: NextRequest) {
       if (pin !== storedPin) {
         return NextResponse.json({ error: 'PIN incorrect' }, { status: 401 })
       }
-      sessionSeed = pin
       displayName = 'Valérie'
     }
 
-    const token = createSessionToken(sessionSeed)
+    const token = createSessionToken(displayName)
     const response = NextResponse.json({ ok: true, name: displayName })
     const cookieOpts = {
       httpOnly: true,
