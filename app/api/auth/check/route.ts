@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getManagerSession, getManagerName } from '@/lib/auth'
+import { getManagerSession, getManagerName, canEditAll } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,5 +8,5 @@ export async function GET() {
   if (!isAuth) {
     return NextResponse.json({ authenticated: false }, { status: 401 })
   }
-  return NextResponse.json({ authenticated: true, name: getManagerName() })
+  return NextResponse.json({ authenticated: true, name: getManagerName(), canEditAll: canEditAll() })
 }

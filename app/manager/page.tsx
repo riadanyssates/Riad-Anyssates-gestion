@@ -371,11 +371,13 @@ function EntriesTab({ type, label, color }: { type: 'cb' | 'cash'; label: string
  
   useEffect(() => { fetchEntries() }, [fetchEntries])
   const [me, setMe] = useState('Valérie')
+  const [canEditAll, setCanEditAll] = useState(false)
+  const [editing, setEditing] = useState<Entry | null>(null)
   useEffect(() => {
     fetch('/api/employees').then(r => r.json()).then((emps: Employee[]) => {
       setEmployees(Array.isArray(emps) ? emps.filter(e => e.active).map(e => e.name) : [])
     }).catch(() => {})
-    fetch('/api/auth/check').then(r => r.json()).then(d => { if (d?.name) { setMe(d.name); setFEmployee(prev => prev || d.name) } }).catch(() => {})
+    fetch('/api/auth/check').then(r => r.json()).then(d => { if (d?.name) { setMe(d.name); setFEmployee(prev => prev || d.name) } setCanEditAll(!!d?.canEditAll) }).catch(() => {})
   }, [])
   const employeeChoices = useMemo(() => Array.from(new Set([me, 'Valérie', ...employees])), [me, employees])
  
@@ -1074,6 +1076,7 @@ function EntriesTab({ type, label, color }: { type: 'cb' | 'cash'; label: string
                   <td><span className={e.status === 'validated' ? 'badge-validated' : 'badge-pending'}>{e.status === 'validated' ? 'Validé' : 'En attente'}</span></td>
                   <td style={{ whiteSpace: 'nowrap' }}><div style={{ display: 'flex', gap: '0.3rem' }}>
                     <button onClick={() => toggleStatus(e)} style={{ background: e.status === 'pending' ? 'var(--green)' : '#888', color: 'white', border: 'none', borderRadius: '0.4rem', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.8rem' }}>{e.status === 'pending' ? '✓' : '↩'}</button>
+                    {canEditAll && <button onClick={() => setEditing(e)} title="Modifier toute l'opération" style={{ background: 'white', color: '#444', border: '1px solid #ddd', borderRadius: '0.4rem', padding: '0.3rem 0.5rem', cursor: 'pointer', fontSize: '0.8rem' }}>✏️</button>}
                     <button onClick={() => setDeleteModal(e.id)} style={{ background: 'var(--red)', color: 'white', border: 'none', borderRadius: '0.4rem', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.8rem' }}>🗑</button>
                   </div></td>
                 </tr>
@@ -1095,6 +1098,13 @@ function EntriesTab({ type, label, color }: { type: 'cb' | 'cash'; label: string
           }} />
       )}
  
+      {editing && (
+        <EditEntryModal entry={editing} type={type} employees={employeeChoices} categories={categories} paymentModes={paymentModes}
+          toDataUrl={fileToBase64}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); fetchEntries(true); setFormSuccess('✓ Opération modifiée'); setTimeout(() => setFormSuccess(''), 4000) }} />
+      )}
+
       {deleteModal !== null && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div className="card" style={{ maxWidth: 340, width: '90%', textAlign: 'center' }}>
@@ -1111,6 +1121,91 @@ function EntriesTab({ type, label, color }: { type: 'cb' | 'cash'; label: string
   )
 }
  
+// ─── Modification complète d'une opération (Valérie et Nicolas) ──────────────
+
+function EditEntryModal({ entry, type, employees, categories, paymentModes, toDataUrl, onClose, onSaved }: {
+  entry: Entry; type: 'cb' | 'cash'; employees: string[]; categories: string[]; paymentModes: string[]
+  toDataUrl: (f: File) => Promise<string>; onClose: () => void; onSaved: () => void
+}) {
+  const [date, setDate] = useState(entry.date)
+  const [employee, setEmployee] = useState(entry.employee_name)
+  const [category, setCategory] = useState(entry.category)
+  const [supplier, setSupplier] = useState(entry.supplier || '')
+  const [payment, setPayment] = useState(entry.payment || '')
+  const [loc, setLoc] = useState<'fonds' | 'coffre'>(entry.cash_location === 'coffre' ? 'coffre' : 'fonds')
+  const [reference, setReference] = useState(entry.reference || '')
+  const [description, setDescription] = useState(entry.description || '')
+  const [currency, setCurrency] = useState(entry.currency || 'MAD')
+  const [amount, setAmount] = useState(String(entry.amount ?? ''))
+  const [amountHt, setAmountHt] = useState(entry.amount_ht != null ? String(entry.amount_ht) : '')
+  const [tva, setTva] = useState(entry.tva_rate != null ? String(entry.tva_rate) : '')
+  const [toAcc, setToAcc] = useState(!!entry.to_accountant)
+  const [file, setFile] = useState<File | null>(null)
+  const [removeFile, setRemoveFile] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const lbl: React.CSSProperties = { display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.3rem' }
+  const cats = categories.includes(category) ? categories : [category, ...categories]
+  const emps = employees.includes(employee) ? employees : [employee, ...employees]
+
+  async function save(ev: React.FormEvent) {
+    ev.preventDefault()
+    setSaving(true); setError('')
+    const edit: Record<string, unknown> = { date, employee_name: employee, category, supplier, payment, cash_location: loc, reference, description, currency,
+      amount: parseFloat(amount.replace(',', '.')), amount_ht: amountHt === '' ? null : parseFloat(amountHt.replace(',', '.')), tva_rate: tva === '' ? null : parseFloat(tva.replace(',', '.')), to_accountant: toAcc }
+    try {
+      if (file) edit.invoice_url = await toDataUrl(file)
+      else if (removeFile) edit.invoice_url = null
+    } catch (err) { setError((err as Error).message || 'Justificatif illisible'); setSaving(false); return }
+    const r = await fetch(`/api/entries/${entry.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ edit }) }).catch(() => null)
+    if (r && r.ok) { onSaved(); return }
+    const d = r ? await r.json().catch(() => ({})) : {}
+    setError(d.error || 'Enregistrement impossible — réessayez.')
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '1rem' }} onClick={ev => { if (ev.target === ev.currentTarget && !saving) onClose() }}>
+      <form className="card" onSubmit={save} style={{ maxWidth: 620, width: '100%', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+        <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>Modifier l&apos;opération</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.7rem' }}>
+          <div><label style={lbl}>Date</label><input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} required /></div>
+          <div><label style={lbl}>Employé</label><select className="form-input" value={employee} onChange={e => setEmployee(e.target.value)}>{emps.map(n => <option key={n}>{n}</option>)}</select></div>
+          <div><label style={lbl}>Catégorie</label><select className="form-input" value={category} onChange={e => setCategory(e.target.value)}>{cats.map(c => <option key={c}>{c}</option>)}</select></div>
+          <div><label style={lbl}>{type === 'cb' ? 'Fournisseur' : 'Client'}</label><input className="form-input" value={supplier} onChange={e => setSupplier(e.target.value)} /></div>
+          <div><label style={lbl}>Paiement</label><select className="form-input" value={payment} onChange={e => setPayment(e.target.value)}>{!payment && <option value="">—</option>}{paymentModes.map(m => <option key={m}>{m}</option>)}</select></div>
+          {payment === 'Espèces' && <div><label style={lbl}>Espèces</label><select className="form-input" value={loc} onChange={e => setLoc(e.target.value as 'fonds' | 'coffre')}><option value="fonds">Caisse</option><option value="coffre">Coffre</option></select></div>}
+          <div><label style={lbl}>N° facture / chèque</label><input className="form-input" value={reference} onChange={e => setReference(e.target.value)} /></div>
+          <div><label style={lbl}>Devise</label><select className="form-input" value={currency} onChange={e => setCurrency(e.target.value)}>{['MAD', 'EUR'].map(c => <option key={c}>{c}</option>)}</select></div>
+          <div><label style={lbl}>Montant</label><input className="form-input" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} required /></div>
+          <div><label style={lbl}>Montant HT (facultatif)</label><input className="form-input" inputMode="decimal" value={amountHt} onChange={e => setAmountHt(e.target.value)} /></div>
+          <div><label style={lbl}>Taux TVA % (facultatif)</label><input className="form-input" inputMode="decimal" value={tva} onChange={e => setTva(e.target.value)} /></div>
+        </div>
+        <div><label style={lbl}>Description</label><textarea className="form-input" rows={2} value={description} onChange={e => setDescription(e.target.value)} /></div>
+        <div>
+          <label style={lbl}>Justificatif</label>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '0.85rem' }}>
+            {file ? <span>📎 {file.name} (remplacera l&apos;actuel)</span>
+              : removeFile ? <span style={{ color: 'var(--red)' }}>Sera retiré à l&apos;enregistrement</span>
+              : entry.invoice_url ? <a href={entry.invoice_url} onClick={ev => { ev.preventDefault(); openAttachment(entry.invoice_url as string) }} style={{ color: 'var(--blue)', cursor: 'pointer' }}>📄 Voir l&apos;actuel</a>
+              : <span style={{ color: '#888' }}>Aucun</span>}
+            <label className="btn-secondary" style={{ cursor: 'pointer', fontSize: '0.8rem', padding: '0.3rem 0.6rem' }}>{entry.invoice_url || file ? 'Remplacer' : 'Ajouter'}
+              <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) { setFile(f); setRemoveFile(false) } }} /></label>
+            {(entry.invoice_url || file) && !removeFile && <button type="button" className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem' }} onClick={() => { setFile(null); setRemoveFile(!!entry.invoice_url) }}>Retirer</button>}
+            {removeFile && <button type="button" className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem' }} onClick={() => setRemoveFile(false)}>Annuler le retrait</button>}
+          </div>
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}><input type="checkbox" checked={toAcc} onChange={e => setToAcc(e.target.checked)} /> Facture à envoyer au comptable</label>
+        {error && <p style={{ color: 'var(--red)', fontWeight: 600, fontSize: '0.85rem', margin: 0 }}>{error}</p>}
+        <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Annuler</button>
+          <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 // ─── Fond de caisse Tab ───────────────────────────────────────────────────────
  
 function FondsTab() {

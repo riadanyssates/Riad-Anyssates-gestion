@@ -59,4 +59,14 @@ export function getManagerName(): string {
   return !name || name === 'Administrateur' ? 'Valérie' : name
 }
 
+// Personnes autorisées à modifier TOUS les champs d'une opération (date, montant, justificatif…).
+// Les autres administrateurs gardent les modifications rapides habituelles.
+const FULL_EDITORS = ['valérie', 'valerie', 'nicolas']
+
+export function canEditAll(): boolean {
+  if (!readSession(cookies().get(SESSION_COOKIE)?.value)) return false
+  const first = getManagerName().trim().toLowerCase().split(/\s+/)[0] || ''
+  return FULL_EDITORS.includes(first)
+}
+
 export { SESSION_COOKIE, MANAGER_NAME_COOKIE }
