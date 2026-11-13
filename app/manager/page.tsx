@@ -1231,6 +1231,20 @@ function FondsTab() {
   }
   const [msg, setMsg] = useState('')
   const [deleteTransfer, setDeleteTransfer] = useState<string | null>(null)
+  // Valérie et Nicolas : modifier / supprimer n'importe quelle ligne de la caisse
+  const [canEditAll, setCanEditAll] = useState(false)
+  const [employees, setEmployees] = useState<string[]>([])
+  const [editEntry, setEditEntry] = useState<Entry | null>(null)
+  const [editFonds, setEditFonds] = useState<FondsEntry | null>(null)
+  const [deleteLine, setDeleteLine] = useState<{ entry?: Entry; fonds?: FondsEntry } | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  useEffect(() => {
+    fetch('/api/auth/check').then(r => r.json()).then(d => setCanEditAll(!!d?.canEditAll)).catch(() => {})
+    fetch('/api/employees').then(r => r.json()).then((emps: Employee[]) => {
+      setEmployees(Array.isArray(emps) ? emps.filter(e => e.active).map(e => e.name) : [])
+    }).catch(() => {})
+  }, [])
+  const employeeChoices = useMemo(() => Array.from(new Set(['Valérie', 'Nicolas', ...employees])), [employees])
  
   // Transfert coffre ↔ fond de caisse
   const [tDirection, setTDirection] = useState<'coffre_to_fonds' | 'fonds_to_coffre'>('coffre_to_fonds')
@@ -1272,6 +1286,7 @@ function FondsTab() {
   type CaisseRow = {
     key: string; date: string; created: string; employee: string; kind: string; category: string
     label: string; currency: 'MAD' | 'EUR'; signed: number; invoice?: string | null; transferId?: string | null; solde: number
+    entry?: Entry; fonds?: FondsEntry
   }
   const [histMonth, setHistMonth] = useState('')
   const [histCurrency, setHistCurrency] = useState<'MAD' | 'EUR'>('MAD')
@@ -1285,6 +1300,7 @@ function FondsTab() {
         label: [e.supplier, e.description].filter(Boolean).join(' — '),
         currency: e.currency === 'EUR' ? 'EUR' : 'MAD',
         signed: (e.type === 'cash' ? 1 : -1) * Number(e.amount), invoice: (e.invoice_url as string) || null,
+        entry: e,
       })
     }
     for (const f of fondsEntries) {
@@ -1293,6 +1309,7 @@ function FondsTab() {
         kind: f.transfer_id ? 'Transfert coffre' : 'Mouvement caisse', category: f.category,
         label: f.description || '', currency: f.currency === 'EUR' ? 'EUR' : 'MAD',
         signed: (f.direction === 'in' ? 1 : -1) * Number(f.amount), transferId: f.transfer_id || null,
+        fonds: f,
       })
     }
     rows.sort((a, b) => a.date.localeCompare(b.date) || a.created.localeCompare(b.created))
@@ -1313,8 +1330,7 @@ function FondsTab() {
     if (r && r.ok) {
       setTAmount(''); setTDescription('')
       await reload()
-      setMsg('✓ Transfert enregistré (visible aussi dans le Coffre fort)')
-      setTimeout(() => setMsg(''), 4000)
+      flash('✓ Transfert enregistré (visible aussi dans le Coffre fort)')
     } else {
       const d = r ? await r.json().catch(() => ({})) : {}
       setTError(d.error || 'Erreur lors du transfert')
@@ -1328,11 +1344,25 @@ function FondsTab() {
     reload()
   }
  
+  function flash(t: string) { setMsg(t); setTimeout(() => setMsg(''), 4000) }
+
+  async function confirmDeleteLine() {
+    if (!deleteLine) return
+    setDeleting(true)
+    const url = deleteLine.entry ? `/api/entries/${deleteLine.entry.id}` : `/api/fonds/${deleteLine.fonds!.id}`
+    const r = await fetch(url, { method: 'DELETE' }).catch(() => null)
+    setDeleting(false)
+    setDeleteLine(null)
+    await reload()
+    flash(r && r.ok ? '✓ Ligne supprimée' : "Erreur : la ligne n'a pas été supprimée.")
+  }
+
   if (loading) return <p>Chargement…</p>
  
   return (
     <div>
       <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#6366F1', marginBottom: '1rem' }}>💰 Fond de caisse</h2>
+      {msg && !tSubmitting && <p style={{ color: msg.startsWith('✓') ? 'var(--green)' : 'var(--red)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>{msg}</p>}
  
       {/* Soldes auto-calculés */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
@@ -1431,7 +1461,6 @@ function FondsTab() {
             </div>
           </div>
           {tError && <p style={{ color: 'var(--red)', fontSize: '0.85rem' }}>{tError}</p>}
-          {msg && <p style={{ color: 'var(--green)', fontSize: '0.85rem' }}>{msg}</p>}
           <button className="btn-primary" type="submit" disabled={tSubmitting || !tAmount} style={{ background: '#6366F1', opacity: !tAmount ? 0.5 : 1 }}>
             {tSubmitting ? 'Enregistrement…' : 'Enregistrer le transfert'}
           </button>
@@ -1479,11 +1508,16 @@ function FondsTab() {
                     <td style={{ fontWeight: 600, color: 'var(--red)', whiteSpace: 'nowrap' }}>{r.signed < 0 ? fmt(-r.signed) : ''}</td>
                     <td style={{ fontWeight: 700, color: '#4338CA', whiteSpace: 'nowrap' }}>{fmt(r.solde)}</td>
                     <td>{r.invoice ? <a href={r.invoice} onClick={ev => { ev.preventDefault(); openAttachment(r.invoice) }} style={{ color: 'var(--blue)', fontSize: '0.8rem', cursor: 'pointer' }}>📄 Voir</a> : <span style={{ color: '#bbb', fontSize: '0.8rem' }}>—</span>}</td>
-                    <td>
-                      {r.transferId && (
-                        <button onClick={() => setDeleteTransfer(r.transferId!)} title="Supprimer le transfert (des deux côtés)" style={{ background: 'var(--red)', color: 'white', border: 'none', borderRadius: '0.4rem', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.8rem' }}>🗑</button>
+                    <td style={{ whiteSpace: 'nowrap' }}><div style={{ display: 'flex', gap: '0.3rem' }}>
+                      {canEditAll && (r.entry || r.fonds) && (
+                        <button onClick={() => r.entry ? setEditEntry(r.entry) : setEditFonds(r.fonds!)} title={r.transferId ? 'Modifier le transfert (des deux côtés)' : 'Modifier la ligne'} style={{ background: 'white', color: '#444', border: '1px solid #ddd', borderRadius: '0.4rem', padding: '0.3rem 0.5rem', cursor: 'pointer', fontSize: '0.8rem' }}>✏️</button>
                       )}
-                    </td>
+                      {r.transferId ? (
+                        <button onClick={() => setDeleteTransfer(r.transferId!)} title="Supprimer le transfert (des deux côtés)" style={{ background: 'var(--red)', color: 'white', border: 'none', borderRadius: '0.4rem', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.8rem' }}>🗑</button>
+                      ) : canEditAll && (r.entry || r.fonds) && (
+                        <button onClick={() => setDeleteLine({ entry: r.entry, fonds: r.fonds })} title="Supprimer la ligne" style={{ background: 'var(--red)', color: 'white', border: 'none', borderRadius: '0.4rem', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.8rem' }}>🗑</button>
+                      )}
+                    </div></td>
                   </tr>
                 ))}
               </tbody>
@@ -1504,6 +1538,103 @@ function FondsTab() {
           </div>
         </div>
       )}
+
+      {deleteLine && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div className="card" style={{ maxWidth: 360, width: '90%', textAlign: 'center' }}>
+            <p style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Supprimer cette ligne ?</p>
+            <p style={{ marginBottom: '1rem', fontSize: '0.85rem', color: '#888' }}>
+              {deleteLine.entry
+                ? `${deleteLine.entry.type === 'cash' ? "L'encaissement" : 'La dépense'} sera aussi retiré${deleteLine.entry.type === 'cash' ? '' : 'e'} de l'onglet ${deleteLine.entry.type === 'cash' ? 'Encaissements' : 'Dépenses'}.`
+                : 'Le mouvement sera retiré du fond de caisse.'}
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <button className="btn-secondary" onClick={() => setDeleteLine(null)} disabled={deleting}>Annuler</button>
+              <button className="btn-red" onClick={confirmDeleteLine} disabled={deleting}>{deleting ? 'Suppression…' : 'Supprimer'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editEntry && (
+        <EditEntryModal entry={editEntry} type={editEntry.type === 'cash' ? 'cash' : 'cb'} employees={employeeChoices}
+          categories={editEntry.type === 'cash' ? ENCAISSEMENTS_CATEGORIES : DEPENSES_CATEGORIES}
+          paymentModes={editEntry.type === 'cash' ? PAYMENT_MODES_ENCAISSEMENTS : PAYMENT_MODES_DEPENSES}
+          toDataUrl={fileToDataUrl}
+          onClose={() => setEditEntry(null)}
+          onSaved={async () => { setEditEntry(null); await reload(); flash('✓ Opération modifiée') }} />
+      )}
+
+      {editFonds && (
+        <EditFondsModal entry={editFonds} employees={employeeChoices}
+          onClose={() => setEditFonds(null)}
+          onSaved={async () => { setEditFonds(null); await reload(); flash(editFonds.transfer_id ? '✓ Transfert modifié (caisse et coffre)' : '✓ Mouvement modifié') }} />
+      )}
+    </div>
+  )
+}
+
+// ─── Modification d'un mouvement de caisse / transfert (Valérie et Nicolas) ──
+
+const CAISSE_CATEGORIES = ['Client', 'Commission', 'Administratif', 'Nourriture', 'Spa', 'Prestataire', 'Salaire', 'Maroc Telecom', 'Travaux', 'Impôts', 'Ajustement', 'Divers']
+
+function EditFondsModal({ entry, employees, onClose, onSaved }: {
+  entry: FondsEntry; employees: string[]; onClose: () => void; onSaved: () => void
+}) {
+  const isTransfer = !!entry.transfer_id
+  const [date, setDate] = useState(entry.date)
+  const [direction, setDirection] = useState<'in' | 'out'>(entry.direction === 'out' ? 'out' : 'in')
+  const [amount, setAmount] = useState(String(entry.amount ?? ''))
+  const [currency, setCurrency] = useState(entry.currency === 'EUR' ? 'EUR' : 'MAD')
+  const [employee, setEmployee] = useState(entry.employee_name)
+  const [category, setCategory] = useState(entry.category)
+  const [description, setDescription] = useState(entry.description || '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const lbl: React.CSSProperties = { display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.3rem' }
+  const cats = CAISSE_CATEGORIES.includes(category) ? CAISSE_CATEGORIES : [category, ...CAISSE_CATEGORIES]
+  const emps = employees.includes(employee) ? employees : [employee, ...employees]
+
+  async function save(ev: React.FormEvent) {
+    ev.preventDefault()
+    setSaving(true); setError('')
+    const edit: Record<string, unknown> = { date, direction, amount: parseFloat(amount.replace(',', '.')), currency, description }
+    if (!isTransfer) { edit.employee_name = employee; edit.category = category }
+    const r = await fetch(`/api/fonds/${entry.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ edit }) }).catch(() => null)
+    if (r && r.ok) { onSaved(); return }
+    const d = r ? await r.json().catch(() => ({})) : {}
+    setError(d.error || 'Enregistrement impossible — réessayez.')
+    setSaving(false)
+  }
+
+  const dirBtn = (val: 'in' | 'out', label: string) => (
+    <button key={val} type="button" onClick={() => setDirection(val)} style={{ flex: 1, padding: '0.5rem', border: `2px solid ${direction === val ? '#6366F1' : '#ddd'}`, borderRadius: '0.5rem', background: direction === val ? '#EEF2FF' : 'white', fontWeight: direction === val ? 700 : 400, cursor: 'pointer', color: direction === val ? '#4338CA' : 'var(--text)', fontSize: '0.85rem' }}>{label}</button>
+  )
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '1rem' }} onClick={ev => { if (ev.target === ev.currentTarget && !saving) onClose() }}>
+      <form className="card" onSubmit={save} style={{ maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+        <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{isTransfer ? 'Modifier le transfert coffre ↔ caisse' : 'Modifier le mouvement de caisse'}</div>
+        {isTransfer && <p style={{ fontSize: '0.8rem', color: '#888', margin: 0 }}>La modification s&apos;applique aussi à la ligne correspondante du Coffre fort.</p>}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {isTransfer
+            ? <>{dirBtn('in', '🔐 Coffre → 💰 Caisse')}{dirBtn('out', '💰 Caisse → 🔐 Coffre')}</>
+            : <>{dirBtn('in', '➕ Entrée en caisse')}{dirBtn('out', '➖ Sortie de caisse')}</>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.7rem' }}>
+          <div><label style={lbl}>Date</label><input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} required /></div>
+          <div><label style={lbl}>Montant</label><input className="form-input" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} required /></div>
+          <div><label style={lbl}>Devise</label><select className="form-input" value={currency} onChange={e => setCurrency(e.target.value)}>{['MAD', 'EUR'].map(c => <option key={c}>{c}</option>)}</select></div>
+          {!isTransfer && <div><label style={lbl}>Employé</label><select className="form-input" value={employee} onChange={e => setEmployee(e.target.value)}>{emps.map(n => <option key={n}>{n}</option>)}</select></div>}
+          {!isTransfer && <div><label style={lbl}>Catégorie</label><select className="form-input" value={category} onChange={e => setCategory(e.target.value)}>{cats.map(c => <option key={c}>{c}</option>)}</select></div>}
+        </div>
+        <div><label style={lbl}>Description</label><textarea className="form-input" rows={2} value={description} onChange={e => setDescription(e.target.value)} /></div>
+        {error && <p style={{ color: 'var(--red)', fontWeight: 600, fontSize: '0.85rem', margin: 0 }}>{error}</p>}
+        <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Annuler</button>
+          <button type="submit" className="btn-primary" disabled={saving} style={{ background: '#6366F1' }}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </form>
     </div>
   )
 }
