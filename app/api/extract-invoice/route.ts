@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   // Date du jour (heure du Maroc = UTC) : sert à dater correctement un document sans année
   const today = new Date().toISOString().slice(0, 10)
   const currentYear = today.slice(0, 4)
-  const dateRule = `Nous sommes aujourd'hui le ${today}. Pour "date" : si l'année n'apparaît pas sur le document (ex : "29/09"), utilise l'année en cours (${currentYear}).`
+  const dateRule = `Nous sommes aujourd'hui le ${today}. Les documents sont marocains : TOUTE date écrite avec des chiffres est au format JOUR/MOIS/ANNÉE (JJ/MM/AAAA ou JJ/MM/AA, séparateurs / - . possibles), JAMAIS au format américain MOIS/JOUR. Exemple : "05/11/2026" = 5 novembre 2026 → "2026-11-05". Pour "date" : si l'année n'apparaît pas sur le document (ex : "29/09"), utilise l'année en cours (${currentYear}). Recopie aussi dans "date_raw" la date exactement telle qu'elle est imprimée sur le document (ou null).`
  
   const prompt = entryType === 'cb'
     ? `Analyse cette facture/reçu. Réponds UNIQUEMENT avec un JSON strict (aucun texte autour).
@@ -55,6 +55,7 @@ ${dateRule}
 Si c'est un ticket de supermarché/épicerie/grande surface avec plusieurs produits, détecte les catégories présentes et utilise ce format :
 {
   "date": "YYYY-MM-DD ou null",
+  "date_raw": "date telle qu'imprimée ou null",
   "supplier": "nom du magasin ou null",
   "amount_ttc": montant total en nombre décimal ou null,
   "is_supermarche": true,
@@ -66,6 +67,7 @@ Si c'est un ticket de supermarché/épicerie/grande surface avec plusieurs produ
 Sinon (facture normale), utilise ce format :
 {
   "date": "YYYY-MM-DD ou null",
+  "date_raw": "date telle qu'imprimée ou null",
   "supplier": "nom du fournisseur ou null",
   "amount_ht": nombre décimal ou null,
   "tva_rate": taux TVA en % (ex: 20) ou null,
@@ -80,6 +82,7 @@ Si une information n'est pas visible, mets null. Réponds UNIQUEMENT avec le JSO
 ${dateRule}
 {
   "date": "YYYY-MM-DD ou null",
+  "date_raw": "date telle qu'imprimée ou null",
   "supplier": "nom établissement ou null",
   "amount_ttc": montant total en nombre décimal ou null
 }
@@ -119,7 +122,10 @@ Réponds UNIQUEMENT avec le JSON.`
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) return NextResponse.json({})
     const extracted = JSON.parse(jsonMatch[0])
-    extracted.date = sanitizeDate(extracted.date, today)
+    // La date imprimée est relue ici en JJ/MM/AAAA : elle prime sur l'interprétation du modèle
+    const fromRaw = parseDayFirstDate(extracted.date_raw, currentYear)
+    extracted.date = sanitizeDate(fromRaw ?? extracted.date, today)
+    delete extracted.date_raw
     return NextResponse.json(extracted)
   } catch (err) {
     console.error('Extract invoice error:', err)
@@ -139,5 +145,28 @@ function sanitizeDate(value: unknown, today: string): string | null {
   if (isReal(value) && daysFromToday(value) <= MAX_DAYS) return value
   const sameDayThisYear = today.slice(0, 4) + value.slice(4)
   if (isReal(sameDayThisYear) && daysFromToday(sameDayThisYear) <= MAX_DAYS) return sameDayThisYear
+  return null
+}
+
+// Lit une date imprimée au format marocain/français JJ/MM/AAAA (ou JJ/MM/AA, JJ/MM, séparateurs / - .).
+// Un format ISO AAAA-MM-JJ est aussi accepté. Renvoie null si le texte n'est pas reconnu.
+function parseDayFirstDate(raw: unknown, currentYear: string): string | null {
+  if (typeof raw !== 'string') return null
+  const s = raw.trim()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const build = (y: number, m: number, d: number) => {
+    if (m < 1 || m > 12 || d < 1 || d > 31) return null
+    const iso = `${y}-${pad(m)}-${pad(d)}`
+    const dt = new Date(iso + 'T00:00:00Z')
+    return !isNaN(dt.getTime()) && dt.toISOString().slice(0, 10) === iso ? iso : null
+  }
+  let m = s.match(/(\d{4})[\/.\-](\d{1,2})[\/.\-](\d{1,2})/)
+  if (m) return build(+m[1], +m[2], +m[3])
+  m = s.match(/(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?/)
+  if (m) {
+    let y = m[3] ? +m[3] : +currentYear
+    if (m[3] && m[3].length === 2) y += 2000
+    return build(y, +m[2], +m[1])
+  }
   return null
 }
