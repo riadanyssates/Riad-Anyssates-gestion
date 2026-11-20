@@ -9,7 +9,7 @@ import { openAttachment, fileToDataUrl } from '@/lib/attachments'
 import { PAYABLE_SUPPLIERS, PAYABLE_OTHER_CATEGORY, payableCategory, supplierMode, type Payable } from '@/lib/payables'
 import { DateRangeFilter, EMPTY_RANGE, inRange, rangeActive, type DateRange } from './date-range'
 
-const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202F/g, '\u00A0') // espace insécable classique : la recherche Ctrl+F (Firefox) retrouve « 65 400 »
 const dmy = (d: string | null) => (d ? d.split('-').reverse().join('/') : '')
 const today = () => new Date().toISOString().slice(0, 10)
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']

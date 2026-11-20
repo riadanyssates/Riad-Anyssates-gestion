@@ -295,7 +295,7 @@ interface CheckResult {
   }
 }
 
-const money = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const money = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202F/g, '\u00A0') // espace insécable classique : la recherche Ctrl+F (Firefox) retrouve « 65 400 »
 const dmy = (d: string) => d.split('-').reverse().join('/')
 
 export function useStatementCheck() {

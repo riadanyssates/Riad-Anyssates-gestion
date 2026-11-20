@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import type { Entry } from '@/types'
 import { computeInvoice, entryGross, invoiceExtras, quarterOf, EXTRA_CATEGORIES, INVOICE_CATEGORIES, DEFAULT_TVA, DEFAULT_TAXE_SEJOUR_ENFANT, LODGING, QUARTER_LABELS, TAXE_LABEL, tvaOf, type Invoice, type TvaRates } from '@/lib/invoice'
 
-const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202F/g, '\u00A0') // espace insécable classique : la recherche Ctrl+F (Firefox) retrouve « 65 400 »
 const label: React.CSSProperties = { display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.2rem' }
 const BROWN = '#8B4513'
 

@@ -13,7 +13,7 @@ import { InvoiceModal, InvoiceEditor, TaxeSejourPanel, TvaRatesCard, useInvoices
  
 type Tab = 'dashboard' | 'depenses' | 'apayer' | 'encaissements' | 'fonds' | 'banque' | 'coffre' | 'comptable' | 'employees' | 'settings'
  
-const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202F/g, '\u00A0') // espace insécable classique : la recherche Ctrl+F (Firefox) retrouve « 65 400 »
  
 function formatMonth(month: string) {
   const [y, m] = month.split('-')
